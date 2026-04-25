@@ -403,6 +403,10 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "824742783809",
   appId:             "1:824742783809:web:2a372abfc02ab6323b4fc0"
 };
+
+let db  = null;
+let REF = null;
+
 // ─────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────
@@ -758,6 +762,10 @@ function exportExcel() {
 // INIT
 // ─────────────────────────────────────────────
 function init() {
+  // Inizializza Firebase prima di tutto
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db  = firebase.database();
+  REF = db.ref('mdr');
   // Firebase ascolta in tempo reale — nessun polling necessario
   startRealtimeSync();
 }
