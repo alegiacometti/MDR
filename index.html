@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MDR Documentazione — Ariston Group</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --red: #C8102E; --red-light: #f5e6e9;
+    --blue: #003A70; --blue-light: #e6edf5;
+    --ok: #16a34a; --ok-bg: #dcfce7;
+    --na: #64748b; --na-bg: #f1f5f9;
+    --empty: #f8fafc; --border: #e2e8f0;
+    --text: #0f172a; --muted: #94a3b8; --surface: #fff;
+    --sidebar-w: 340px; --header-h: 56px;
+    --amber: #f59e0b; --amber-light: #fef3c7; --amber-border: #fcd34d;
+    --teal: #0d9488;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'DM Sans',sans-serif; background:#f1f5f9; color:var(--text); font-size:13px; overflow-x:hidden; }
+
+  /* ── TOPBAR ── */
+  #topbar {
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    height:var(--header-h); background:var(--blue);
+    display:flex; align-items:center; gap:12px; padding:0 20px;
+    box-shadow:0 2px 12px rgba(0,0,0,.22);
+  }
+  #topbar h1 { color:#fff; font-size:15px; font-weight:600; }
+  #topbar .spacer { flex:1; }
+  .top-btn {
+    padding:6px 14px; border-radius:20px;
+    background:rgba(255,255,255,.15); border:1.5px solid rgba(255,255,255,.3);
+    color:#fff; font-family:inherit; font-size:12px; font-weight:600;
+    cursor:pointer; display:flex; align-items:center; gap:5px; transition:background .15s;
+  }
+  .top-btn:hover { background:rgba(255,255,255,.26); }
+  .sync-dot.saving { background:#f59e0b; }
+  .sync-dot.error  { background:#ef4444; }
+  .stats-pill {
+    background:rgba(255,255,255,.12); border-radius:20px;
+    padding:4px 14px; color:#fff; font-size:12px; font-weight:500;
+    display:flex; align-items:center; gap:6px;
+  }
+  .stats-pill span { opacity:.7; }
+
+  /* ── LAYOUT ── */
+  #app { margin-top:var(--header-h); display:flex; min-height:calc(100vh - var(--header-h)); }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width:var(--sidebar-w); flex-shrink:0;
+    background:var(--surface); border-right:1px solid var(--border);
+    display:flex; flex-direction:column;
+    position:sticky; top:var(--header-h); height:calc(100vh - var(--header-h)); overflow-y:auto;
+  }
+  .sidebar-section { padding:14px 16px; border-bottom:1px solid var(--border); }
+  .sidebar-section h3 { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:10px; }
+
+  .brand-filters { display:flex; gap:6px; flex-wrap:wrap; }
+  .brand-btn { padding:5px 12px; border-radius:20px; font-size:12px; font-weight:600; border:2px solid transparent; cursor:pointer; transition:all .18s; }
+  .brand-btn.ariston { background:var(--red-light); color:var(--red); border-color:var(--red-light); }
+  .brand-btn.ariston.active { background:var(--red); color:#fff; border-color:var(--red); }
+  .brand-btn.chaffoteaux { background:var(--blue-light); color:var(--blue); border-color:var(--blue-light); }
+  .brand-btn.chaffoteaux.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .brand-btn.wolf { background:#f0f0f0; color:#1a1a1a; border-color:#f0f0f0; }
+  .brand-btn.wolf.active { background:#1a1a1a; color:#fff; border-color:#1a1a1a; }
+
+  .search-wrap { position:relative; }
+  .search-wrap input { width:100%; padding:8px 12px 8px 32px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:13px; background:var(--empty); outline:none; }
+  .search-wrap input:focus { border-color:var(--blue); background:#fff; }
+  .search-wrap .ico { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--muted); }
+
+  #add-row-btn { width:100%; padding:10px; border-radius:8px; background:var(--red); color:#fff; border:none; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; }
+  #add-row-btn:hover { background:#a50d25; }
+  #add-form { display:none; flex-direction:column; gap:8px; margin-top:10px; }
+  #add-form.visible { display:flex; }
+  #add-form label { font-size:11px; font-weight:600; color:var(--muted); }
+  #add-form input[type="text"], #add-form input[type="number"] { width:100%; padding:7px 10px; border:1px solid var(--border); border-radius:6px; font-family:inherit; font-size:13px; outline:none; }
+  .brand-checkboxes { display:flex; gap:10px; }
+  .brand-check { display:flex; align-items:center; gap:4px; font-size:12px; font-weight:600; cursor:pointer; }
+  .brand-check input { accent-color:var(--red); }
+  #form-confirm-btn { padding:8px; border-radius:6px; background:var(--blue); color:#fff; border:none; font-family:inherit; font-weight:600; cursor:pointer; }
+  #form-cancel-btn  { padding:8px; border-radius:6px; background:var(--empty); color:var(--text); border:1px solid var(--border); font-family:inherit; font-weight:600; cursor:pointer; }
+
+  #product-list { flex:1; overflow-y:auto; }
+  .product-item { display:flex; align-items:center; gap:8px; padding:10px 16px; cursor:pointer; border-bottom:1px solid var(--border); transition:background .12s; position:relative; }
+  .product-item:hover { background:var(--empty); }
+  .product-item.selected { background:var(--blue-light); }
+  .product-item .pcode { font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); }
+  .product-item .pname { font-size:12px; font-weight:500; line-height:1.3; }
+  .product-item .brand-dots { display:flex; gap:3px; margin-left:auto; flex-shrink:0; }
+  .brand-dot { width:7px; height:7px; border-radius:50%; }
+  .brand-dot.ariston { background:var(--red); }
+  .brand-dot.chaffoteaux { background:var(--blue); }
+  .brand-dot.wolf { background:#555; }
+  .product-item .prog-bar { position:absolute; bottom:0; left:0; height:2px; background:var(--ok); transition:width .3s; }
+
+  /* ── MAIN ── */
+  #main { flex:1; overflow-x:auto; overflow-y:auto; padding:20px; }
+  #no-selection { display:flex; flex-direction:column; align-items:center; justify-content:center; height:60vh; color:var(--muted); gap:8px; }
+  #no-selection .big-ico { font-size:48px; opacity:.3; }
+  #product-detail { display:none; }
+  #product-detail.visible { display:block; }
+
+  /* ── DETAIL ── */
+  .detail-header { background:var(--surface); border-radius:10px; padding:14px 18px; margin-bottom:14px; border:1px solid var(--border); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .dh-code { font-family:'DM Mono',monospace; font-size:12px; background:var(--empty); padding:4px 10px; border-radius:6px; color:var(--muted); }
+  .dh-name { font-size:17px; font-weight:700; }
+  .brand-toggle-row { display:flex; gap:6px; align-items:center; }
+  .brand-pill { padding:3px 12px; border-radius:20px; font-size:11px; font-weight:700; border:2px solid transparent; cursor:pointer; transition:all .16s; letter-spacing:.4px; opacity:.32; font-family:inherit; }
+  .brand-pill.active { opacity:1; }
+  .brand-pill.ariston { background:var(--red-light); color:var(--red); border-color:var(--red-light); }
+  .brand-pill.ariston.active { background:var(--red); color:#fff; border-color:var(--red); }
+  .brand-pill.chaffoteaux { background:var(--blue-light); color:var(--blue); border-color:var(--blue-light); }
+  .brand-pill.chaffoteaux.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .brand-pill.wolf { background:#f0f0f0; color:#333; border-color:#f0f0f0; }
+  .brand-pill.wolf.active { background:#333; color:#fff; border-color:#333; }
+  .del-btn { padding:5px 12px; border-radius:6px; border:1px solid #fee2e2; background:#fff5f5; color:#dc2626; font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; font-family:inherit; }
+  .del-btn:hover { background:#dc2626; color:#fff; }
+
+  .progress-row { display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .prog-card { flex:1; min-width:110px; background:var(--surface); border-radius:8px; padding:11px 14px; border:1px solid var(--border); }
+  .prog-card .pc-label { font-size:10px; font-weight:600; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.4px; }
+  .prog-card .pc-bar-wrap { background:var(--border); border-radius:4px; height:5px; overflow:hidden; }
+  .prog-card .pc-bar { height:100%; background:var(--ok); border-radius:4px; transition:width .4s; }
+  .prog-card .pc-pct { font-size:14px; font-weight:700; margin-top:4px; }
+
+  .section-card { background:var(--surface); border-radius:10px; border:1px solid var(--border); margin-bottom:12px; overflow:hidden; }
+  .section-header { display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid var(--border); background:var(--empty); }
+  .section-header h3 { font-size:12px; font-weight:700; }
+  .owner-badge { font-size:10px; padding:2px 8px; border-radius:10px; background:#e2e8f0; color:#475569; font-weight:600; }
+  .doc-count { margin-left:auto; font-size:11px; color:var(--muted); font-weight:600; }
+
+  .section-card.disponibilita { border:2px solid var(--amber); background:var(--amber-light); }
+  .section-card.disponibilita .section-header { background:#fef3c7; border-bottom:2px solid var(--amber); }
+  .section-card.disponibilita .section-header h3 { color:#78350f; font-size:13px; }
+  .section-card.disponibilita .owner-badge { background:#fde68a; color:#78350f; }
+  .section-card.disponibilita .doc-count { color:#92400e; }
+  .section-card.disponibilita .doc-item { border-color:var(--amber-border); }
+  .section-card.disponibilita .doc-item .doc-name { background:#fffbeb; border-bottom-color:var(--amber-border); font-weight:600; }
+
+  .caricamento-header { display:flex; align-items:center; gap:14px; margin:22px 0 12px; padding:13px 20px; background:linear-gradient(90deg,var(--teal) 0%,#0f766e 100%); border-radius:10px; box-shadow:0 2px 8px rgba(13,148,136,.25); }
+  .caricamento-header .ch-icon { width:34px; height:34px; border-radius:8px; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; font-size:18px; }
+  .caricamento-header .ch-text h2 { color:#fff; font-size:14px; font-weight:700; }
+  .caricamento-header .ch-text p  { color:rgba(255,255,255,.7); font-size:11px; margin-top:1px; }
+  .caricamento-header .ch-stats { margin-left:auto; display:flex; gap:16px; }
+  .caricamento-header .ch-stat { text-align:center; }
+  .caricamento-header .ch-stat .cs-val { color:#fff; font-size:18px; font-weight:700; line-height:1; }
+  .caricamento-header .ch-stat .cs-lbl { color:rgba(255,255,255,.65); font-size:10px; text-transform:uppercase; letter-spacing:.4px; }
+
+  .doc-grid { display:grid; gap:6px; padding:12px; grid-template-columns:repeat(auto-fill,minmax(155px,1fr)); }
+  .doc-item { border-radius:8px; overflow:hidden; border:1px solid var(--border); background:#fff; }
+  .doc-item .doc-name { padding:7px 10px; font-size:11px; font-weight:500; line-height:1.3; background:var(--empty); border-bottom:1px solid var(--border); min-height:38px; display:flex; align-items:center; }
+  .doc-item .doc-ctrl { display:flex; align-items:center; gap:4px; padding:6px; }
+  .tog-btn { flex:1; padding:5px 0; border-radius:5px; font-size:11px; font-weight:700; border:1.5px solid transparent; cursor:pointer; transition:all .14s; font-family:inherit; text-align:center; }
+  .tog-btn.ok-btn { background:var(--empty); color:var(--muted); border-color:var(--border); }
+  .tog-btn.ok-btn.active { background:var(--ok-bg); color:var(--ok); border-color:var(--ok); }
+  .tog-btn.na-btn { background:var(--empty); color:var(--muted); border-color:var(--border); }
+  .tog-btn.na-btn.active { background:var(--na-bg); color:var(--na); border-color:var(--na); }
+  .tog-btn:disabled { cursor:not-allowed; }
+  .doc-item.forced-na .doc-name { color:var(--muted); }
+  .doc-item.forced-na .tog-btn.ok-btn { opacity:.22; }
+  .doc-item.forced-na .tog-btn.na-btn { background:var(--na-bg); color:var(--na); border-color:var(--na); opacity:.7; }
+
+  /* OK bloccato — documento non ancora disponibile */
+  .tog-btn.locked-ok {
+    opacity:.22; cursor:not-allowed;
+    background:var(--empty); color:var(--muted); border-color:var(--border);
+  }
+  .doc-item.ok-locked { border-color:#fde68a; }
+  .doc-item.ok-locked .doc-name { color:#92400e; }
+
+  /* Owner badge per singolo documento */
+  .doc-owner {
+    font-size:9px; font-weight:700; letter-spacing:.4px;
+    padding:2px 6px; text-align:center;
+    border-bottom:1px solid var(--border);
+  }
+  .doc-owner-pb { background:#eff6ff; color:#1d4ed8; }  /* PRESALES BACK — blu */
+  .doc-owner-mp { background:#f0fdf4; color:#15803d; }  /* MARKETING PRODOTTO — verde */
+
+  ::-webkit-scrollbar { width:5px; height:5px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <h1>MDR Documentazione</h1>
+  <span id="sync-indicator" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:4px;"></span>
+  <div class="spacer"></div>
+  <button class="top-btn" onclick="exportExcel()">
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 3v13M5 13l7 7 7-7"/><path d="M3 21h18"/></svg>
+    Esporta Excel
+  </button>
+  <div class="stats-pill"><span>Prodotti:</span><strong id="prod-count">0</strong>&nbsp;·&nbsp;<span>OK:</span><strong id="ok-count">0</strong></div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="sidebar">
+    <div class="sidebar-section">
+      <h3>Brand</h3>
+      <div class="brand-filters">
+        <button class="brand-btn ariston active" onclick="toggleBrand('ariston',this)">Ariston</button>
+        <button class="brand-btn chaffoteaux active" onclick="toggleBrand('chaffoteaux',this)">Chaffoteaux</button>
+        <button class="brand-btn wolf active" onclick="toggleBrand('wolf',this)">Wolf</button>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <h3>Cerca</h3>
+      <div class="search-wrap">
+        <svg class="ico" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input id="search-input" type="text" placeholder="Codice o nome prodotto…" oninput="filterList()">
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <button id="add-row-btn" onclick="toggleAddForm()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        Aggiungi Prodotto
+      </button>
+      <div id="add-form">
+        <label>Codice Prodotto</label>
+        <input type="number" id="f-code" placeholder="es. 1234567">
+        <label>Nome Prodotto</label>
+        <input type="text" id="f-name" placeholder="es. Nuos Split Inverter…">
+        <label>Brand</label>
+        <div class="brand-checkboxes">
+          <label class="brand-check"><input type="checkbox" id="f-ariston"> Ariston</label>
+          <label class="brand-check"><input type="checkbox" id="f-chaffoteaux"> Chaff.</label>
+          <label class="brand-check"><input type="checkbox" id="f-wolf"> Wolf</label>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button id="form-confirm-btn" onclick="addProduct()">Aggiungi</button>
+          <button id="form-cancel-btn" onclick="toggleAddForm()">Annulla</button>
+        </div>
+      </div>
+    </div>
+    <div id="product-list"></div>
+  </div>
+
+  <div id="main">
+    <div id="no-selection">
+      <div class="big-ico">📋</div>
+      <div style="font-weight:600;font-size:15px;">Seleziona un prodotto</div>
+      <div>o aggiungine uno nuovo dalla barra laterale</div>
+    </div>
+    <div id="product-detail"></div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// SCHEMA
+// ─────────────────────────────────────────────
+// LEFT_DOCS = DISPONIBILITÀ DOCUMENTI
+// owner = ufficio responsabile della disponibilità del documento
+const LEFT_DOCS = [
+  { key:'dati_uni',    label:'DATI UNI TS',               owner:'MARKETING PRODOTTO' },
+  { key:'dich_ce',     label:'DICHIARAZIONE CE',           owner:'MARKETING PRODOTTO' },
+  { key:'dich_ct30',   label:'DICHIARAZIONE CT 3.0',       owner:'MARKETING PRODOTTO' },
+  { key:'dich_fgas',   label:'DICHIARAZIONE F-GAS',        owner:'MARKETING PRODOTTO' },
+  { key:'dich_detr',   label:'DICHIARAZIONE DETRAZIONI',   owner:'MARKETING PRODOTTO' },
+  { key:'dwg',         label:'DWG',                        owner:'PRESALES BACK' },
+  { key:'el_pf',       label:'EL / PF',                    owner:'MARKETING PRODOTTO' },
+  { key:'libr_inst',   label:'LIBRETTO INSTALLATORE',      owner:'MARKETING PRODOTTO' },
+  { key:'libr_utente', label:'LIBRETTO UTENTE',             owner:'MARKETING PRODOTTO' },
+  { key:'nota_cap',    label:'NOTA DI CAPITOLATO',         owner:'PRESALES BACK' },
+  { key:'prof_manual', label:'PROFESSIONAL MANUAL',        owner:'PRESALES BACK' },
+  { key:'scheda_tec',  label:'SCHEDA TECNICA',             owner:'MARKETING PRODOTTO' },
+];
+
+// RIGHT_SECTIONS — ogni doc ha:
+//   leftKey: chiave in LEFT_DOCS — se non è 'ok' lì, OK è BLOCCATO qui (doc non disponibile)
+//   owner: ufficio responsabile del CARICAMENTO in questo specifico strumento
+//   se leftKey è null: nessun documento base richiesto
+const RIGHT_SECTIONS = [
+  { id:'software', label:'SOFTWARE', brands:['ariston','chaffoteaux','wolf'],
+    docs:[
+      { key:'sw_edilclima', label:'EDILCLIMA', leftKey:'dati_uni', owner:'PRESALES BACK' },
+      { key:'sw_namirial',  label:'NAMIRIAL',  leftKey:'dati_uni', owner:'PRESALES BACK' },
+      { key:'sw_acca',      label:'ACCA',       leftKey:'dati_uni', owner:'PRESALES BACK' },
+    ]
+  },
+  { id:'at_ariston', label:'AREA TECNICA ARISTON', brands:['ariston'],
+    docs:[
+      { key:'ata_nota',  label:'NOTA DI CAPITOLATO',       leftKey:'nota_cap',    owner:'PRESALES BACK' },
+      { key:'ata_dwg',   label:'DWG',                       leftKey:'dwg',         owner:'PRESALES BACK' },
+      { key:'ata_prof',  label:'PROFESSIONAL MANUAL',       leftKey:'prof_manual', owner:'PRESALES BACK' },
+      { key:'ata_libr',  label:'LIBR. INSTALLATORE',        leftKey:'libr_inst',   owner:'PRESALES BACK' },
+      { key:'ata_fgas',  label:'DICHIARAZIONE F-GAS',       leftKey:'dich_fgas',   owner:'PRESALES BACK' },
+      { key:'ata_ce',    label:'DICHIARAZIONE CE',           leftKey:'dich_ce',     owner:'PRESALES BACK' },
+      { key:'ata_ct30',  label:'DICHIARAZIONE CT 3.0',      leftKey:'dich_ct30',   owner:'PRESALES BACK' },
+      { key:'ata_detr',  label:'DICHIARAZIONE DETRAZIONI',  leftKey:'dich_detr',   owner:'PRESALES BACK' },
+    ]
+  },
+  { id:'at_chaff', label:'AREA TECNICA CHAFFOTEAUX', brands:['chaffoteaux'],
+    docs:[
+      { key:'atc_nota',  label:'NOTA DI CAPITOLATO',       leftKey:'nota_cap',    owner:'PRESALES BACK' },
+      { key:'atc_dwg',   label:'DWG DEL PRODOTTO',          leftKey:'dwg',         owner:'PRESALES BACK' },
+      { key:'atc_prof',  label:'PROFESSIONAL MANUAL',       leftKey:'prof_manual', owner:'PRESALES BACK' },
+      { key:'atc_libr',  label:'LIBR. INSTALLATORE',        leftKey:'libr_inst',   owner:'PRESALES BACK' },
+      { key:'atc_fgas',  label:'DICHIARAZIONE F-GAS',       leftKey:'dich_fgas',   owner:'PRESALES BACK' },
+      { key:'atc_ce',    label:'DICHIARAZIONE CE',           leftKey:'dich_ce',     owner:'PRESALES BACK' },
+      { key:'atc_ct30',  label:'DICHIARAZIONE CT 3.0',      leftKey:'dich_ct30',   owner:'PRESALES BACK' },
+      { key:'atc_detr',  label:'DICHIARAZIONE DETRAZIONI',  leftKey:'dich_detr',   owner:'PRESALES BACK' },
+    ]
+  },
+  { id:'cpq_ariston', label:'CPQ ARISTON', brands:['ariston'],
+    docs:[
+      { key:'cpq_libr',   label:'LIBRETTO INSTALLATORE', leftKey:'libr_inst',   owner:'MARKETING PRODOTTO' },
+      { key:'cpq_scheda', label:'SCHEDA TECNICA',          leftKey:'scheda_tec',  owner:'MARKETING PRODOTTO' },
+      { key:'cpq_nota',   label:'NOTA DI CAPITOLATO',     leftKey:'nota_cap',    owner:'PRESALES BACK' },
+      { key:'cpq_dwg',    label:'DWG DEL PRODOTTO',        leftKey:'dwg',         owner:'PRESALES BACK' },
+      { key:'cpq_prof',   label:'PROFESSIONAL MANUAL',     leftKey:'prof_manual', owner:'PRESALES BACK' },
+    ]
+  },
+  { id:'wolfnet', label:'WOLFNET', brands:['wolf'],
+    docs:[
+      { key:'wn_fgas', label:'DICHIARAZIONE F-GAS',       leftKey:'dich_fgas', owner:'MARKETING PRODOTTO' },
+      { key:'wn_ce',   label:'DICHIARAZIONE CE',           leftKey:'dich_ce',   owner:'MARKETING PRODOTTO' },
+      { key:'wn_ct30', label:'DICHIARAZIONE CT 3.0',      leftKey:'dich_ct30', owner:'MARKETING PRODOTTO' },
+      { key:'wn_detr', label:'DICHIARAZIONE DETRAZIONI',  leftKey:'dich_detr', owner:'MARKETING PRODOTTO' },
+      { key:'wn_prof', label:'PROFESSIONAL MANUAL',       leftKey:'prof_manual',owner:'PRESALES BACK' },
+    ]
+  },
+  { id:'sito_wolf', label:'SITO WEB WOLF', brands:['wolf'],
+    docs:[
+      { key:'sw2_libr', label:'LIBRETTO INSTALLATORE', leftKey:'libr_inst',   owner:'MARKETING PRODOTTO' },
+      { key:'sw2_ce',   label:'DICHIARAZIONE CE',       leftKey:'dich_ce',     owner:'MARKETING PRODOTTO' },
+      { key:'sw2_prof', label:'PROFESSIONAL MANUAL',    leftKey:'prof_manual', owner:'PRESALES BACK' },
+    ]
+  },
+  { id:'conf_wolf', label:'CONF. WOLF', brands:['wolf'],
+    docs:[
+      { key:'cw_nota', label:'NOTA DI CAPITOLATO', leftKey:'nota_cap', owner:'PRESALES BACK' },
+    ]
+  },
+  { id:'sito_ariston', label:'SITO WEB ARISTON', brands:['ariston'],
+    docs:[
+      { key:'sa_libr_inst', label:'LIBRETTO INSTALLATORE',   leftKey:'libr_inst',   owner:'MARKETING PRODOTTO' },
+      { key:'sa_libr_ut',   label:'LIBRETTO UTENTE',          leftKey:'libr_utente', owner:'MARKETING PRODOTTO' },
+      { key:'sa_elpf',      label:'EL / PF',                  leftKey:'el_pf',       owner:'MARKETING PRODOTTO' },
+      { key:'sa_fgas',      label:'DICHIARAZIONE F-GAS',      leftKey:'dich_fgas',   owner:'MARKETING PRODOTTO' },
+      { key:'sa_ct30',      label:'DICHIARAZIONE CT 3.0',     leftKey:'dich_ct30',   owner:'MARKETING PRODOTTO' },
+      { key:'sa_detr',      label:'DICHIARAZIONE DETRAZIONI', leftKey:'dich_detr',   owner:'MARKETING PRODOTTO' },
+      { key:'sa_scheda',    label:'SCHEDA TECNICA',           leftKey:'scheda_tec',  owner:'MARKETING PRODOTTO' },
+    ]
+  },
+  { id:'sito_chaff', label:'SITO WEB CHAFFOTEAUX', brands:['chaffoteaux'],
+    docs:[
+      { key:'sc_libr_inst', label:'LIBRETTO INSTALLATORE',   leftKey:'libr_inst',   owner:'MARKETING PRODOTTO' },
+      { key:'sc_libr_ut',   label:'LIBRETTO UTENTE',          leftKey:'libr_utente', owner:'MARKETING PRODOTTO' },
+      { key:'sc_elpf',      label:'EL / PF',                  leftKey:'el_pf',       owner:'MARKETING PRODOTTO' },
+      { key:'sc_fgas',      label:'DICHIARAZIONE F-GAS',      leftKey:'dich_fgas',   owner:'MARKETING PRODOTTO' },
+      { key:'sc_ct30',      label:'DICHIARAZIONE CT 3.0',     leftKey:'dich_ct30',   owner:'MARKETING PRODOTTO' },
+      { key:'sc_detr',      label:'DICHIARAZIONE DETRAZIONI', leftKey:'dich_detr',   owner:'MARKETING PRODOTTO' },
+      { key:'sc_scheda',    label:'SCHEDA TECNICA',           leftKey:'scheda_tec',  owner:'MARKETING PRODOTTO' },
+    ]
+  },
+  { id:'cat_ariston', label:'CATALOGO DIGITALE ARISTON', brands:['ariston'],
+    docs:[
+      { key:'ca_libr_inst', label:'LIBRETTO INSTALLATORE',   leftKey:'libr_inst',   owner:'MARKETING PRODOTTO' },
+      { key:'ca_libr_ut',   label:'LIBRETTO UTENTE',          leftKey:'libr_utente', owner:'MARKETING PRODOTTO' },
+      { key:'ca_elpf',      label:'EL / PF',                  leftKey:'el_pf',       owner:'MARKETING PRODOTTO' },
+      { key:'ca_fgas',      label:'DICHIARAZIONE F-GAS',      leftKey:'dich_fgas',   owner:'MARKETING PRODOTTO' },
+      { key:'ca_ct30',      label:'DICHIARAZIONE CT 3.0',     leftKey:'dich_ct30',   owner:'MARKETING PRODOTTO' },
+      { key:'ca_detr',      label:'DICHIARAZIONE DETRAZIONI', leftKey:'dich_detr',   owner:'MARKETING PRODOTTO' },
+      { key:'ca_scheda',    label:'SCHEDA TECNICA',           leftKey:'scheda_tec',  owner:'MARKETING PRODOTTO' },
+    ]
+  },
+  { id:'cat_chaff', label:'CATALOGO DIGITALE CHAFFOTEAUX', brands:['chaffoteaux'],
+    docs:[
+      { key:'cc_libr_inst', label:'LIBRETTO INSTALLATORE',   leftKey:'libr_inst',   owner:'MARKETING PRODOTTO' },
+      { key:'cc_libr_ut',   label:'LIBRETTO UTENTE',          leftKey:'libr_utente', owner:'MARKETING PRODOTTO' },
+      { key:'cc_elpf',      label:'EL / PF',                  leftKey:'el_pf',       owner:'MARKETING PRODOTTO' },
+      { key:'cc_fgas',      label:'DICHIARAZIONE F-GAS',      leftKey:'dich_fgas',   owner:'MARKETING PRODOTTO' },
+      { key:'cc_ct30',      label:'DICHIARAZIONE CT 3.0',     leftKey:'dich_ct30',   owner:'MARKETING PRODOTTO' },
+      { key:'cc_detr',      label:'DICHIARAZIONE DETRAZIONI', leftKey:'dich_detr',   owner:'MARKETING PRODOTTO' },
+      { key:'cc_scheda',    label:'SCHEDA TECNICA',           leftKey:'scheda_tec',  owner:'MARKETING PRODOTTO' },
+    ]
+  },
+];
+
+// ─────────────────────────────────────────────
+// FIREBASE CONFIG
+// ─────────────────────────────────────────────
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDn2j6jM8CMXapv7v3HY-iIP2P1OcaLM-g",
+  authDomain: "mdr-documentazione.firebaseapp.com",
+  databaseURL: "https://mdr-documentazione-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "mdr-documentazione",
+  storageBucket: "mdr-documentazione.firebasestorage.app",
+  messagingSenderId: "824742783809",
+  appId: "1:824742783809:web:2a372abfc02ab6323b4fc0"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+let products    = [];
+let brandFilter = { ariston:true, chaffoteaux:true, wolf:true };
+let selectedId  = null;
+let _saveTimer  = null;
+
+// ─────────────────────────────────────────────
+// FIREBASE: CARICA + ASCOLTA IN TEMPO REALE
+// ─────────────────────────────────────────────
+function startRealtimeSync() {
+  REF.on('value', snapshot => {
+    const data = snapshot.val();
+    if (!data) return;
+    products    = data.products    || [];
+    brandFilter = data.brandFilter || { ariston:true, chaffoteaux:true, wolf:true };
+    // ripristina brand filter buttons
+    ['ariston','chaffoteaux','wolf'].forEach(b => {
+      const btn = document.querySelector(`.brand-btn.${b}`);
+      if (btn) btn.classList.toggle('active', brandFilter[b]);
+    });
+    renderList();
+    if (selectedId) renderDetail();
+  }, err => {
+    console.error('Firebase errore:', err);
+    document.getElementById('sync-indicator').textContent = '⚠️ Errore connessione';
+    document.getElementById('sync-indicator').style.color = '#dc2626';
+  });
+}
+
+function save() {
+  // Debounce 400ms — evita scritture eccessive durante modifiche rapide
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    const indicator = document.getElementById('sync-indicator');
+    indicator.textContent = '💾 Salvataggio...';
+    indicator.style.color = '#f59e0b';
+    REF.set({ products, brandFilter })
+      .then(() => {
+        indicator.textContent = '✓ Salvato';
+        indicator.style.color = '#16a34a';
+        setTimeout(() => { indicator.textContent = ''; }, 2000);
+      })
+      .catch(e => {
+        console.error('Errore salvataggio:', e);
+        indicator.textContent = '⚠️ Errore salvataggio';
+        indicator.style.color = '#dc2626';
+      });
+  }, 400);
+}
+
+
+
+// ─────────────────────────────────────────────
+// SIDEBAR
+// ─────────────────────────────────────────────
+function toggleBrand(brand, btn) {
+  brandFilter[brand] = !brandFilter[brand];
+  btn.classList.toggle('active');
+  renderList();
+  save();
+}
+
+function filterList() { renderList(); }
+
+function renderList() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const filtered = products.filter(p => {
+    const hasBrand = ['ariston','chaffoteaux','wolf'].some(b => brandFilter[b] && p.brands[b]);
+    const matchQ   = !q || String(p.code).includes(q) || p.name.toLowerCase().includes(q);
+    return hasBrand && matchQ;
+  });
+
+  document.getElementById('product-list').innerHTML = filtered.length
+    ? filtered.map(p => {
+        const pct = calcLeftProgress(p);
+        const sel = p.id === selectedId ? ' selected' : '';
+        const dots = ['ariston','chaffoteaux','wolf'].filter(b=>p.brands[b]).map(b=>`<span class="brand-dot ${b}"></span>`).join('');
+        return `<div class="product-item${sel}" onclick="selectProduct('${p.id}')">
+          <div style="flex:1;min-width:0"><div class="pcode">#${p.code}</div><div class="pname">${p.name}</div></div>
+          <div class="brand-dots">${dots}</div>
+          <div class="prog-bar" style="width:${pct}%"></div>
+        </div>`;
+      }).join('')
+    : '<div style="padding:16px;color:var(--muted);font-size:12px;">Nessun prodotto trovato</div>';
+
+  updateGlobalStats();
+  // ripristina brand filter buttons
+  ['ariston','chaffoteaux','wolf'].forEach(b => {
+    const btn = document.querySelector(`.brand-btn.${b}`);
+    if (btn) btn.classList.toggle('active', brandFilter[b]);
+  });
+}
+
+function toggleAddForm() {
+  const f = document.getElementById('add-form');
+  f.classList.toggle('visible');
+  document.getElementById('add-row-btn').innerHTML = f.classList.contains('visible')
+    ? '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg> Chiudi'
+    : '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Aggiungi Prodotto';
+}
+
+function addProduct() {
+  const code    = document.getElementById('f-code').value.trim();
+  const name    = document.getElementById('f-name').value.trim();
+  const ariston = document.getElementById('f-ariston').checked;
+  const chaff   = document.getElementById('f-chaffoteaux').checked;
+  const wolf    = document.getElementById('f-wolf').checked;
+  if (!code || !name) { alert('Inserisci codice e nome.'); return; }
+  if (!ariston && !chaff && !wolf) { alert('Seleziona almeno un brand.'); return; }
+  const id = 'p_' + Date.now();
+  products.push({ id, code:parseInt(code), name, brands:{ ariston, chaffoteaux:chaff, wolf }, docs:{} });
+  toggleAddForm();
+  ['f-code','f-name'].forEach(i => document.getElementById(i).value = '');
+  ['f-ariston','f-chaffoteaux','f-wolf'].forEach(i => document.getElementById(i).checked = false);
+  renderList();
+  selectProduct(id);
+  save();
+}
+
+// ─────────────────────────────────────────────
+// PROGRESS
+// ─────────────────────────────────────────────
+function calcLeftProgress(p) {
+  let ok=0, total=0;
+  LEFT_DOCS.forEach(d => { if (p.docs[d.key]==='na') return; total++; if (p.docs[d.key]==='ok') ok++; });
+  return total===0 ? 0 : Math.round((ok/total)*100);
+}
+function calcSectionProgress(p, section) {
+  let ok=0, total=0;
+  section.docs.forEach(d => {
+    const leftVal = d.leftKey ? (p.docs[d.leftKey] || null) : null;
+    if (leftVal === 'na') return;          // forzato N/A, escluso dal conteggio
+    if (p.docs[d.key] === 'na') return;   // marcato N/A, escluso dal conteggio
+    total++;
+    if (p.docs[d.key] === 'ok') ok++;
+  });
+  return { ok, total, pct: total===0?0:Math.round((ok/total)*100) };
+}
+function isSectionVisible(p, s) { return s.brands.some(b => p.brands[b]); }
+
+// ─────────────────────────────────────────────
+// DETAIL
+// ─────────────────────────────────────────────
+function selectProduct(id) {
+  selectedId = id;
+  renderList();
+  renderDetail();
+  document.getElementById('no-selection').style.display = 'none';
+  const det = document.getElementById('product-detail');
+  det.classList.add('visible'); det.style.display = 'block';
+}
+
+function renderDetail() {
+  const p = getProduct(selectedId);
+  if (!p) return;
+
+  const brandPills = ['ariston','chaffoteaux','wolf'].map(b => {
+    const labels = { ariston:'Ariston', chaffoteaux:'Chaffoteaux', wolf:'Wolf' };
+    return `<button class="brand-pill ${b}${p.brands[b]?' active':''}" onclick="toggleProductBrand('${p.id}','${b}')">${labels[b]}</button>`;
+  }).join('');
+
+  const visibleSections = RIGHT_SECTIONS.filter(s => isSectionVisible(p, s));
+  const pctLeft = calcLeftProgress(p);
+
+  const progCards = [
+    { label:'Disponibilità', pct: pctLeft },
+    ...visibleSections.map(s => { const r=calcSectionProgress(p,s); return {label:s.label, pct:r.pct}; })
+  ].map(c => `<div class="prog-card">
+    <div class="pc-label">${c.label}</div>
+    <div class="pc-bar-wrap"><div class="pc-bar" style="width:${c.pct}%"></div></div>
+    <div class="pc-pct" style="color:${c.pct===100?'var(--ok)':c.pct>50?'#ea580c':'var(--muted)'}">${c.pct}%</div>
+  </div>`).join('');
+
+  const caricOk    = visibleSections.reduce((a,s)=>a+calcSectionProgress(p,s).ok,0);
+  const caricTotal = visibleSections.reduce((a,s)=>a+calcSectionProgress(p,s).total,0);
+  const caricPct   = caricTotal===0?0:Math.round((caricOk/caricTotal)*100);
+
+  const sectionsHTML = visibleSections.map(s => {
+    const {ok,total,pct} = calcSectionProgress(p,s);
+    return `<div class="section-card"><div class="section-header">
+      <h3>${s.label}</h3>
+      <span class="doc-count">${ok}/${total} — ${pct}%</span>
+    </div>${renderDocGrid(p,s.docs)}</div>`;
+  }).join('');
+
+  const leftOk = LEFT_DOCS.filter(d=>p.docs[d.key]==='ok').length;
+
+  document.getElementById('product-detail').innerHTML = `
+    <div class="detail-header">
+      <div class="dh-code">#${p.code}</div>
+      <div class="dh-name">${p.name}</div>
+      <div class="brand-toggle-row">${brandPills}</div>
+      <button class="del-btn" onclick="deleteProduct('${p.id}')">Elimina</button>
+    </div>
+    <div class="progress-row">${progCards}</div>
+    <div class="section-card disponibilita">
+      <div class="section-header">
+        <h3>📂 DISPONIBILITÀ DOCUMENTI</h3>
+        <span class="owner-badge">BASE</span>
+        <span class="doc-count">${leftOk} / ${LEFT_DOCS.length}</span>
+      </div>
+      ${renderDocGrid(p, LEFT_DOCS, true)}
+    </div>
+    <div class="caricamento-header">
+      <div class="ch-icon">📤</div>
+      <div class="ch-text"><h2>CARICAMENTO</h2><p>Sezioni operative — visibili in base ai brand del prodotto</p></div>
+      <div class="ch-stats">
+        <div class="ch-stat"><div class="cs-val">${caricOk}</div><div class="cs-lbl">Completati</div></div>
+        <div class="ch-stat"><div class="cs-val">${caricPct}%</div><div class="cs-lbl">Avanzamento</div></div>
+      </div>
+    </div>
+    ${sectionsHTML}`;
+}
+
+function renderDocGrid(p, docs, isLeft=false) {
+  return `<div class="doc-grid">${docs.map(d => {
+    const val = p.docs[d.key] || null;
+    const leftVal = d.leftKey ? (p.docs[d.leftKey] || null) : null;
+
+    // leftKey presente e documento base = N/A → forza N/A bloccato
+    if (d.leftKey && leftVal === 'na') {
+      return `<div class="doc-item forced-na">
+        ${d.owner ? `<div class="doc-owner doc-owner-${d.owner==='PRESALES BACK'?'pb':'mp'}">${d.owner}</div>` : ''}
+        <div class="doc-name">${d.label}</div>
+        <div class="doc-ctrl">
+          <button class="tog-btn ok-btn" disabled>OK</button>
+          <button class="tog-btn na-btn active" disabled>N/A</button>
+        </div></div>`;
+    }
+    // leftKey presente ma documento base non ancora OK → OK bloccato (doc non disponibile)
+    const okLocked = d.leftKey && leftVal !== 'ok';
+    const okA = val==='ok' ? ' active' : '';
+    const naA = val==='na' ? ' active' : '';
+    const okBtn = okLocked
+      ? `<button class="tog-btn ok-btn locked-ok" disabled title="Documento non disponibile in Disponibilità">OK</button>`
+      : `<button class="tog-btn ok-btn${okA}" onclick="setDoc('${p.id}','${d.key}','ok','${d.label}')">OK</button>`;
+    const ownerLabel = !isLeft && d.owner
+      ? `<div class="doc-owner doc-owner-${d.owner==='PRESALES BACK'?'pb':'mp'}">${d.owner}</div>`
+      : (isLeft && d.owner ? `<div class="doc-owner doc-owner-${d.owner==='PRESALES BACK'?'pb':'mp'}">${d.owner}</div>` : '');
+    return `<div class="doc-item${okLocked?' ok-locked':''}">
+      ${ownerLabel}
+      <div class="doc-name">${d.label}</div>
+      <div class="doc-ctrl">
+        ${okBtn}
+        <button class="tog-btn na-btn${naA}" onclick="setDoc('${p.id}','${d.key}','na','${d.label}')">N/A</button>
+      </div></div>`;
+  }).join('')}</div>`;
+}
+
+function getProduct(id) { return products.find(p => p.id === id); }
+
+async function setDoc(pid, key, val, label) {
+  const p = getProduct(pid);
+  if (!p) return;
+  const prev = p.docs[key];
+  p.docs[key] = prev === val ? null : val;
+  const newVal = p.docs[key];
+  renderDetail();
+  renderList();
+  save();
+}
+
+async function toggleProductBrand(pid, brand) {
+  const p = getProduct(pid);
+  if (!p) return;
+  const active = ['ariston','chaffoteaux','wolf'].filter(b=>p.brands[b]);
+  if (active.length===1 && p.brands[brand]) { alert('Il prodotto deve avere almeno un brand.'); return; }
+  p.brands[brand] = !p.brands[brand];
+  const labels = { ariston:'Ariston', chaffoteaux:'Chaffoteaux', wolf:'Wolf' };
+  const stato = p.brands[brand] ? 'aggiunto' : 'rimosso';
+  renderDetail();
+  renderList();
+  save();
+}
+
+async function deleteProduct(id) {
+  const p = getProduct(id);
+  if (!confirm(`Eliminare "${p?.name}"?`)) return;
+  products = products.filter(x => x.id !== id);
+  selectedId = null;
+  await save();
+  renderList();
+  document.getElementById('product-detail').classList.remove('visible');
+  document.getElementById('product-detail').style.display = 'none';
+  document.getElementById('no-selection').style.display = 'flex';
+}
+
+// ─────────────────────────────────────────────
+// GLOBAL STATS
+// ─────────────────────────────────────────────
+function updateGlobalStats() {
+  document.getElementById('prod-count').textContent = products.length;
+  document.getElementById('ok-count').textContent   = products.reduce((a,p)=>a+Object.values(p.docs).filter(v=>v==='ok').length,0);
+}
+
+// ─────────────────────────────────────────────
+// EXPORT EXCEL
+// ─────────────────────────────────────────────
+function exportExcel() {
+  if (typeof XLSX==='undefined') { alert('Libreria non caricata. Riprova.'); return; }
+  const wb = XLSX.utils.book_new();
+  const allCols = RIGHT_SECTIONS.flatMap(s=>s.docs.map(d=>({secLabel:s.label,docLabel:d.label,key:d.key,leftKey:d.leftKey,secBrands:s.brands})));
+
+  const r1 = ['ARISTON','CHAFFOTEAUX','WOLF','Codice','Prodotto',
+    'DISPONIBILITÀ DOCUMENTO',...Array(LEFT_DOCS.length-1).fill(''),
+    ...RIGHT_SECTIONS.flatMap(s=>[s.label,...Array(s.docs.length-1).fill('')]),
+    'AVANZAMENTO'];
+  const r2 = ['','','','','',...LEFT_DOCS.map(d=>d.label),...allCols.map(c=>c.docLabel),''];
+  const rows = [r1,r2];
+
+  products.forEach(p => {
+    const v = k => p.docs[k]==='ok'?'OK':p.docs[k]==='na'?'N/A':'';
+    const leftVals  = LEFT_DOCS.map(d=>v(d.key));
+    const rightVals = allCols.map(c=>{
+      if (!c.secBrands.some(b=>p.brands[b])) return 'N/A';
+      if (c.leftKey && p.docs[c.leftKey]==='na') return 'N/A';
+      return v(c.key);
+    });
+    const allKeys = [...LEFT_DOCS.map(d=>d.key),...allCols.map(c=>c.key)];
+    const okN  = allKeys.filter(k=>p.docs[k]==='ok').length;
+    const naN  = allKeys.filter(k=>p.docs[k]==='na').length;
+    const pct  = (allKeys.length-naN)>0 ? Math.round((okN/(allKeys.length-naN))*100)+'%' : '0%';
+    rows.push([p.brands.ariston?'X':'',p.brands.chaffoteaux?'X':'',p.brands.wolf?'X':'',p.code,p.name,...leftVals,...rightVals,pct]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:4},{wch:4},{wch:4},{wch:12},{wch:40},...LEFT_DOCS.map(()=>({wch:10})),...allCols.map(()=>({wch:10})),{wch:12}];
+
+  const hdrS  = {fill:{fgColor:{rgb:'003A70'}},font:{color:{rgb:'FFFFFF'},bold:true},alignment:{horizontal:'center',wrapText:true}};
+  const dispS = {fill:{fgColor:{rgb:'F59E0B'}},font:{color:{rgb:'78350F'},bold:true},alignment:{horizontal:'center',wrapText:true}};
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let C=range.s.c;C<=range.e.c;C++) {
+    ['0','1'].forEach(R=>{
+      const a=XLSX.utils.encode_cell({r:parseInt(R),c:C});
+      if (ws[a]) ws[a].s = (C>=5&&C<5+LEFT_DOCS.length)?dispS:hdrS;
+    });
+  }
+  for (let R=2;R<=range.e.r;R++) for (let C=range.s.c;C<=range.e.c;C++) {
+    const a=XLSX.utils.encode_cell({r:R,c:C});
+    if (!ws[a]) continue;
+    if (ws[a].v==='OK')  ws[a].s={fill:{fgColor:{rgb:'DCFCE7'}},font:{color:{rgb:'15803D'},bold:true},alignment:{horizontal:'center'}};
+    if (ws[a].v==='N/A') ws[a].s={fill:{fgColor:{rgb:'F1F5F9'}},font:{color:{rgb:'64748B'}},alignment:{horizontal:'center'}};
+  }
+  XLSX.utils.book_append_sheet(wb, ws, 'RIEPILOGO');
+
+  // Foglio LOG (ultime 200 voci)
+  XLSX.writeFile(wb,'MDR_Documentazione_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+function init() {
+  // Firebase ascolta in tempo reale — nessun polling necessario
+  startRealtimeSync();
+}
+
+init();
+</script>
+</body>
+</html>
