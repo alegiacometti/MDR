@@ -532,6 +532,7 @@ function addProduct() {
 // PROGRESS
 // ─────────────────────────────────────────────
 function calcLeftProgress(p) {
+  if (!p.docs) p.docs = {};
   let ok=0, total=0;
   LEFT_DOCS.forEach(d => { if (p.docs[d.key]==='na') return; total++; if (p.docs[d.key]==='ok') ok++; });
   return total===0 ? 0 : Math.round((ok/total)*100);
