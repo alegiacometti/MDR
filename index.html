@@ -1073,9 +1073,7 @@ function handleImportFile(file) {
 }
 
 function parseImportTxt(text) {
-  var lines = text.split(/
-?
-/).filter(l => l.trim());
+  var lines = text.split('\n').filter(function(l){return l.trim().length>0;});
   _importRows = [];
   var skippedHeader = false;
 
