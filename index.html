@@ -186,6 +186,56 @@
   .doc-owner-pb { background:#eff6ff; color:#1d4ed8; }  /* PRESALES BACK — blu */
   .doc-owner-mp { background:#f0fdf4; color:#15803d; }  /* MARKETING PRODOTTO — verde */
 
+  /* ── DOC CUSTOM ── */
+  .add-doc-btn {
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    margin:8px 12px 12px; padding:9px 0; width:calc(100% - 24px);
+    border:2px dashed #fcd34d; border-radius:8px; background:#fffbeb; color:#92400e;
+    font-size:12px; font-weight:600; cursor:pointer; transition:all .15s;
+  }
+  .add-doc-btn:hover { background:#fef3c7; border-color:#f59e0b; }
+  .custom-doc-badge {
+    font-size:9px; padding:1px 5px; border-radius:4px;
+    background:#e0e7ff; color:#3730a3; font-weight:700; margin-left:4px; vertical-align:middle;
+  }
+  /* Modal */
+  #doc-modal-overlay {
+    position:fixed; top:0; left:0; right:0; bottom:0; z-index:9000;
+    background:rgba(0,0,0,.55); align-items:center; justify-content:center;
+  }
+  #doc-modal-box {
+    background:#fff; border-radius:12px; width:480px; max-height:82vh;
+    display:flex; flex-direction:column; overflow:hidden;
+    box-shadow:0 20px 60px rgba(0,0,0,.35); position:relative;
+  }
+  .dm-header {
+    padding:14px 18px; background:#003A70; color:#fff;
+    display:flex; align-items:center; gap:10px; flex-shrink:0;
+  }
+  .dm-header h3 { font-size:13px; font-weight:700; flex:1; margin:0; }
+  .dm-header button { background:none; border:none; color:#fff; font-size:20px; cursor:pointer; }
+  .dm-body { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; }
+  .dm-label { font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.6px; margin-bottom:3px; display:block; }
+  .dm-input, .dm-select {
+    width:100%; padding:9px 11px; border:1.5px solid #e2e8f0;
+    border-radius:7px; font-size:13px; outline:none; box-sizing:border-box; background:#fff;
+  }
+  .dm-input:focus, .dm-select:focus { border-color:#003A70; }
+  .dm-sec-grid { display:flex; flex-direction:column; gap:5px; }
+  .dm-sec-row {
+    display:flex; align-items:center; gap:8px; padding:8px 10px;
+    border:1px solid #e2e8f0; border-radius:7px; background:#f8fafc;
+    font-size:12px; transition:background .12s;
+  }
+  .dm-sec-row:hover { background:#eff6ff; border-color:#bfdbfe; }
+  .dm-sec-row input[type=checkbox] { accent-color:#003A70; flex-shrink:0; }
+  .dm-sec-row label { flex:1; cursor:pointer; }
+  .dm-sec-row select { font-size:10px; padding:3px 6px; border:1px solid #e2e8f0; border-radius:5px; background:#fff; }
+  .dm-footer { padding:12px 16px; border-top:1px solid #e2e8f0; display:flex; gap:8px; flex-shrink:0; }
+  .dm-btn-save { flex:1; padding:10px; border-radius:7px; background:#003A70; color:#fff; border:none; font-weight:700; font-size:13px; cursor:pointer; }
+  .dm-btn-save:hover { background:#002a52; }
+  .dm-btn-cancel { padding:10px 14px; border-radius:7px; background:#f8fafc; color:#0f172a; border:1px solid #e2e8f0; font-size:13px; cursor:pointer; }
+
   ::-webkit-scrollbar { width:5px; height:5px; }
   ::-webkit-scrollbar-track { background:transparent; }
   ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
@@ -233,32 +283,32 @@
 </div>
 
 <!-- MODAL AGGIUNGI DOCUMENTO CUSTOM -->
-<div class="doc-modal-overlay" id="doc-modal-overlay" style="display:none" onclick="if(event.target===this)closeDocModal()">
-  <div class="doc-modal">
-    <div class="doc-modal-header">
-      <h3>Aggiungi documento al prodotto</h3>
-      <button class="doc-modal-close" onclick="closeDocModal()">✕</button>
+<div id="doc-modal-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9000;background:rgba(0,0,0,.55);align-items:center;justify-content:center;" onclick="if(event.target===this)closeDocModal()">
+  <div id="doc-modal-box">
+    <div class="dm-header">
+      <h3>➕ Aggiungi documento al prodotto</h3>
+      <button onclick="closeDocModal()">✕</button>
     </div>
-    <div class="doc-modal-body">
+    <div class="dm-body">
       <div>
-        <div class="doc-modal-label">Nome documento</div>
-        <input class="doc-modal-input" id="dm-label" placeholder="es. SCHEDA SICUREZZA">
+        <span class="dm-label">Nome documento</span>
+        <input class="dm-input" id="dm-label" placeholder="es. SCHEDA SICUREZZA" onkeydown="if(event.key==='Enter')saveCustomDoc()">
       </div>
       <div>
-        <div class="doc-modal-label">Responsabile disponibilità</div>
-        <select class="doc-modal-select" id="dm-owner">
+        <span class="dm-label">Responsabile disponibilità</span>
+        <select class="dm-select" id="dm-owner">
           <option value="MARKETING PRODOTTO">MARKETING PRODOTTO</option>
           <option value="PRESALES BACK">PRESALES BACK</option>
         </select>
       </div>
       <div>
-        <div class="doc-modal-label">Aggiungi anche nelle sezioni</div>
-        <div class="sec-check-grid" id="dm-sections"></div>
+        <span class="dm-label">Aggiungi anche nelle sezioni (opzionale)</span>
+        <div class="dm-sec-grid" id="dm-sections"></div>
       </div>
     </div>
-    <div class="doc-modal-footer">
-      <button class="doc-modal-cancel" onclick="closeDocModal()">Annulla</button>
-      <button class="doc-modal-save" onclick="saveCustomDoc()">Aggiungi</button>
+    <div class="dm-footer">
+      <button class="dm-btn-cancel" onclick="closeDocModal()">Annulla</button>
+      <button class="dm-btn-save" onclick="saveCustomDoc()">Aggiungi documento</button>
     </div>
   </div>
 </div>
@@ -463,7 +513,6 @@ const FIREBASE_CONFIG = {
 
 let db = null;
 let REF = null;
-
 // ─────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────
@@ -854,20 +903,20 @@ function openDocModal() {
   document.getElementById('dm-owner').value = 'MARKETING PRODOTTO';
   const visibleSecs = RIGHT_SECTIONS.filter(s => isSectionVisible(p, s));
   document.getElementById('dm-sections').innerHTML = visibleSecs.map(s => `
-    <label class="sec-check-row">
+    <div class="dm-sec-row">
       <input type="checkbox" id="dm-sec-${s.id}">
-      <span>${s.label}</span>
-      <select id="dm-sec-owner-${s.id}" style="display:none" onclick="event.stopPropagation()">
-        <option value="MARKETING PRODOTTO">MARKETING PRODOTTO</option>
+      <label for="dm-sec-${s.id}">${s.label}</label>
+      <select id="dm-sec-owner-${s.id}" style="display:none">
+        <option value="MARKETING PRODOTTO">MKT PRODOTTO</option>
         <option value="PRESALES BACK">PRESALES BACK</option>
       </select>
-    </label>`).join('');
+    </div>`).join('');
   visibleSecs.forEach(s => {
     const cb = document.getElementById('dm-sec-'+s.id);
     const sel = document.getElementById('dm-sec-owner-'+s.id);
     if (cb) cb.addEventListener('change', () => { sel.style.display = cb.checked ? 'inline-block' : 'none'; });
   });
-  document.getElementById('doc-modal-overlay').style.display='flex';
+  var o=document.getElementById('doc-modal-overlay'); o.style.display='flex'; o.style.alignItems='center'; o.style.justifyContent='center';
   setTimeout(() => document.getElementById('dm-label').focus(), 50);
 }
 
