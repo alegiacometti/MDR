@@ -187,34 +187,6 @@
   .doc-owner-pb { background:#eff6ff; color:#1d4ed8; }  /* PRESALES BACK — blu */
   .doc-owner-mp { background:#f0fdf4; color:#15803d; }  /* MARKETING PRODOTTO — verde */
 
-  /* ── GESTIONE DOCUMENTI ── */
-  .mgmt-overlay { position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center; }
-  .mgmt-overlay.open { display:flex; }
-  .mgmt-box { background:#fff;border-radius:14px;width:560px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.25); }
-  .mgmt-header { padding:16px 20px;background:var(--blue);color:#fff;display:flex;align-items:center;gap:10px; }
-  .mgmt-header h3 { font-size:14px;font-weight:700;flex:1; }
-  .mgmt-close { background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1; }
-  .mgmt-body { flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px; }
-  .mgmt-doc-row { display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--empty); }
-  .mgmt-doc-row .dr-label { flex:1;font-size:12px;font-weight:600; }
-  .mgmt-doc-row .dr-owner { font-size:10px;color:var(--muted); }
-  .mgmt-doc-row .dr-del { padding:3px 8px;border-radius:5px;border:1px solid #fee2e2;background:#fff5f5;color:#dc2626;font-size:11px;cursor:pointer;font-family:inherit; }
-  .mgmt-doc-row .dr-del:hover { background:#dc2626;color:#fff; }
-  .mgmt-add-form { border:2px dashed var(--border);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px; }
-  .mgmt-add-form h4 { font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px; }
-  .mgmt-input { padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;outline:none;width:100%; }
-  .mgmt-input:focus { border-color:var(--blue); }
-  .mgmt-row2 { display:flex;gap:8px; }
-  .mgmt-select { flex:1;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;outline:none;background:#fff; }
-  .mgmt-add-btn { padding:9px 16px;border-radius:6px;background:var(--blue);color:#fff;border:none;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer; }
-  .mgmt-add-btn:hover { background:#002a52; }
-  .mgmt-sep { border:none;border-top:1px solid var(--border);margin:4px 0; }
-  .sec-assign-box { border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:6px; }
-  .sec-assign-header { padding:7px 12px;background:var(--empty);font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border); }
-  .sec-assign-list { padding:8px 12px;display:flex;flex-direction:column;gap:5px; }
-  .sec-assign-row { display:flex;align-items:center;gap:8px;font-size:12px; }
-  .sec-assign-row input { accent-color:var(--blue); }
-  .sec-assign-row select { margin-left:auto;font-size:10px;padding:2px 5px;border:1px solid var(--border);border-radius:4px;font-family:inherit; }
   ::-webkit-scrollbar { width:5px; height:5px; }
   ::-webkit-scrollbar-track { background:transparent; }
   ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
@@ -249,10 +221,6 @@
   <h1>MDR Documentazione</h1>
   <span id="sync-indicator" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:4px;"></span>
   <div class="spacer"></div>
-  <button class="top-btn" onclick="openMgmt()">
-    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-    Gestisci Documenti
-  </button>
   <button class="top-btn" onclick="exportExcel()">
     <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 3v13M5 13l7 7 7-7"/><path d="M3 21h18"/></svg>
     Esporta Excel
@@ -265,14 +233,34 @@
   </div>
 </div>
 
-<!-- GESTISCI DOCUMENTI OVERLAY -->
-<div class="mgmt-overlay" id="mgmt-overlay" onclick="if(event.target===this)closeMgmt()">
-  <div class="mgmt-box">
-    <div class="mgmt-header">
-      <h3>📂 Gestione tipi di documento</h3>
-      <button class="mgmt-close" onclick="closeMgmt()">✕</button>
+<!-- MODAL AGGIUNGI DOCUMENTO CUSTOM -->
+<div class="doc-modal-overlay" id="doc-modal-overlay" onclick="if(event.target===this)closeDocModal()">
+  <div class="doc-modal">
+    <div class="doc-modal-header">
+      <h3>Aggiungi documento al prodotto</h3>
+      <button class="doc-modal-close" onclick="closeDocModal()">✕</button>
     </div>
-    <div class="mgmt-body" id="mgmt-body"></div>
+    <div class="doc-modal-body">
+      <div>
+        <div class="doc-modal-label">Nome documento</div>
+        <input class="doc-modal-input" id="dm-label" placeholder="es. SCHEDA SICUREZZA">
+      </div>
+      <div>
+        <div class="doc-modal-label">Responsabile disponibilità</div>
+        <select class="doc-modal-select" id="dm-owner">
+          <option value="MARKETING PRODOTTO">MARKETING PRODOTTO</option>
+          <option value="PRESALES BACK">PRESALES BACK</option>
+        </select>
+      </div>
+      <div>
+        <div class="doc-modal-label">Aggiungi anche nelle sezioni</div>
+        <div class="sec-check-grid" id="dm-sections"></div>
+      </div>
+    </div>
+    <div class="doc-modal-footer">
+      <button class="doc-modal-cancel" onclick="closeDocModal()">Annulla</button>
+      <button class="doc-modal-save" onclick="saveCustomDoc()">Aggiungi</button>
+    </div>
   </div>
 </div>
 
@@ -494,7 +482,6 @@ function startRealtimeSync() {
     if (!data) return;
     products    = data.products    || [];
     brandFilter = data.brandFilter || { ariston:true, chaffoteaux:true, wolf:true };
-    loadCustomDocs(data.customDocs || null);
     // ripristina brand filter buttons
     ['ariston','chaffoteaux','wolf'].forEach(b => {
       const btn = document.querySelector(`.brand-btn.${b}`);
@@ -605,7 +592,8 @@ function addProduct() {
 function calcLeftProgress(p) {
   if (!p.docs) p.docs = {};
   let ok=0, total=0;
-  getEffectiveLeftDocs().forEach(d => { if (p.docs[d.key]==='na') return; total++; if (p.docs[d.key]==='ok') ok++; });
+  if (!p.docs) p.docs = {};
+  getProductLeftDocs(p).forEach(d => { if (p.docs[d.key]==='na') return; total++; if (p.docs[d.key]==='ok') ok++; });
   return total===0 ? 0 : Math.round((ok/total)*100);
 }
 function calcSectionProgress(p, section) {
@@ -642,7 +630,7 @@ function renderDetail() {
     return `<button class="brand-pill ${b}${p.brands[b]?' active':''}" onclick="toggleProductBrand('${p.id}','${b}')">${labels[b]}</button>`;
   }).join('');
 
-  const visibleSections = getEffectiveSections().filter(s => isSectionVisible(p, s));
+  const visibleSections = getProductSections(p).filter(s => isSectionVisible(p, s));
   const pctLeft = calcLeftProgress(p);
 
   const progCards = [
@@ -666,7 +654,7 @@ function renderDetail() {
     </div>${renderDocGrid(p,s.docs)}</div>`;
   }).join('');
 
-  const leftOk = getEffectiveLeftDocs().filter(d=>p.docs[d.key]==='ok').length;
+  const leftOk = getProductLeftDocs(p).filter(d=>p.docs[d.key]==='ok').length;
 
   document.getElementById('product-detail').innerHTML = `
     <div class="detail-header">
@@ -680,9 +668,13 @@ function renderDetail() {
       <div class="section-header">
         <h3>📂 DISPONIBILITÀ DOCUMENTI</h3>
         <span class="owner-badge">BASE</span>
-        <span class="doc-count">${leftOk} / ${getEffectiveLeftDocs().length}</span>
+        <span class="doc-count">${leftOk} / ${getProductLeftDocs(p).length}</span>
       </div>
-      ${renderDocGrid(p, getEffectiveLeftDocs(), true)}
+      ${renderDocGrid(p, getProductLeftDocs(p), true)}
+      <button class="add-doc-btn" onclick="openDocModal()">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        Aggiungi tipo di documento
+      </button>
     </div>
     <div class="caricamento-header">
       <div class="ch-icon">📤</div>
@@ -699,30 +691,36 @@ function renderDocGrid(p, docs, isLeft=false) {
   return `<div class="doc-grid">${docs.map(d => {
     const val = p.docs[d.key] || null;
     const leftVal = d.leftKey ? (p.docs[d.leftKey] || null) : null;
+    const isCustom = !!d.isCustom;
+    const badge = isCustom ? '<span class="custom-doc-badge">custom</span>' : '';
 
-    // leftKey presente e documento base = N/A → forza N/A bloccato
+    // N/A forzato
     if (d.leftKey && leftVal === 'na') {
       return `<div class="doc-item forced-na">
         ${d.owner ? `<div class="doc-owner doc-owner-${d.owner==='PRESALES BACK'?'pb':'mp'}">${d.owner}</div>` : ''}
-        <div class="doc-name">${d.label}</div>
+        <div class="doc-name">${d.label}${badge}</div>
         <div class="doc-ctrl">
           <button class="tog-btn ok-btn" disabled>OK</button>
           <button class="tog-btn na-btn active" disabled>N/A</button>
         </div></div>`;
     }
-    // leftKey presente ma documento base non ancora OK → OK bloccato (doc non disponibile)
     const okLocked = d.leftKey && leftVal !== 'ok';
     const okA = val==='ok' ? ' active' : '';
     const naA = val==='na' ? ' active' : '';
     const okBtn = okLocked
       ? `<button class="tog-btn ok-btn locked-ok" disabled title="Documento non disponibile in Disponibilità">OK</button>`
       : `<button class="tog-btn ok-btn${okA}" onclick="setDoc('${p.id}','${d.key}','ok','${d.label}')">OK</button>`;
-    const ownerLabel = !isLeft && d.owner
+    const ownerLabel = d.owner
       ? `<div class="doc-owner doc-owner-${d.owner==='PRESALES BACK'?'pb':'mp'}">${d.owner}</div>`
-      : (isLeft && d.owner ? `<div class="doc-owner doc-owner-${d.owner==='PRESALES BACK'?'pb':'mp'}">${d.owner}</div>` : '');
-    return `<div class="doc-item${okLocked?' ok-locked':''}">
+      : '';
+    const delBtn = isCustom && isLeft
+      ? `<button onclick="deleteCustomDoc('${p.id}','${d.key}')" title="Elimina"
+          style="position:absolute;top:3px;right:3px;background:none;border:none;cursor:pointer;color:#dc2626;font-size:13px;line-height:1;padding:1px 3px;">✕</button>`
+      : '';
+    return `<div class="doc-item${okLocked?' ok-locked':''}" style="position:relative">
       ${ownerLabel}
-      <div class="doc-name">${d.label}</div>
+      <div class="doc-name">${d.label}${badge}</div>
+      ${delBtn}
       <div class="doc-ctrl">
         ${okBtn}
         <button class="tog-btn na-btn${naA}" onclick="setDoc('${p.id}','${d.key}','na','${d.label}')">N/A</button>
@@ -831,138 +829,80 @@ function exportExcel() {
 }
 
 // ─────────────────────────────────────────────
-// GESTIONE DOCUMENTI CUSTOM
+// DOCUMENTI CUSTOM PER PRODOTTO
 // ─────────────────────────────────────────────
-let customDocs = [];
-let sectionCustomDocs = {};
-
-function getEffectiveLeftDocs() {
-  return [...LEFT_DOCS, ...customDocs];
+function getProductLeftDocs(p) {
+  const custom = (p.customDocs || []).map(d => ({ key:d.key, label:d.label, owner:d.owner, isCustom:true }));
+  return [...LEFT_DOCS, ...custom];
 }
 
-function getEffectiveSections() {
+function getProductSections(p) {
   return RIGHT_SECTIONS.map(s => {
-    const extra = (sectionCustomDocs[s.id] || []).map(sc => {
-      const base = getEffectiveLeftDocs().find(d => d.key === sc.leftKey);
-      return {
-        key:     s.id + '_cx_' + sc.leftKey,
-        label:   base ? base.label : sc.leftKey,
-        leftKey: sc.leftKey,
-        owner:   sc.owner || 'PRESALES BACK'
-      };
-    });
+    const extra = (p.customDocs || [])
+      .filter(d => (d.sections || []).some(sec => sec.secId === s.id))
+      .map(d => {
+        const secEntry = d.sections.find(sec => sec.secId === s.id);
+        return { key: s.id+'_cx_'+d.key, label: d.label, leftKey: d.key, owner: secEntry.owner, isCustom: true };
+      });
     return { ...s, docs: [...s.docs, ...extra] };
   });
 }
 
-function openMgmt()  { renderMgmt(); document.getElementById('mgmt-overlay').classList.add('open'); }
-function closeMgmt() { document.getElementById('mgmt-overlay').classList.remove('open'); }
-
-function renderMgmt() {
-  const allLeft = getEffectiveLeftDocs();
-  const body = document.getElementById('mgmt-body');
-
-  const listHTML = allLeft.map(d => {
-    const isCustom = customDocs.find(c => c.key === d.key);
-    return `<div class="mgmt-doc-row">
-      <div style="flex:1"><div class="dr-label">${d.label}</div><div class="dr-owner">${d.owner}</div></div>
-      ${isCustom
-        ? `<button class="dr-del" onclick="deleteCustomDoc('${d.key}')">Elimina</button>`
-        : `<span style="font-size:10px;color:var(--muted);padding:3px 8px;background:var(--empty);border-radius:4px;">predefinito</span>`}
-    </div>`;
-  }).join('');
-
-  const addForm = `<hr class="mgmt-sep">
-    <div class="mgmt-add-form">
-      <h4>➕ Aggiungi tipo di documento</h4>
-      <input class="mgmt-input" id="mgmt-new-label" placeholder="Nome documento (es. SCHEDA SICUREZZA)">
-      <div class="mgmt-row2">
-        <select class="mgmt-select" id="mgmt-new-owner">
-          <option value="MARKETING PRODOTTO">MARKETING PRODOTTO</option>
-          <option value="PRESALES BACK">PRESALES BACK</option>
-        </select>
-        <button class="mgmt-add-btn" onclick="addCustomDoc()">Aggiungi</button>
-      </div>
-    </div>`;
-
-  const secSection = customDocs.length === 0 ? '' : `
-    <hr class="mgmt-sep">
-    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;padding:4px 0 2px;">
-      Assegna alle sezioni
-    </div>
-    ${RIGHT_SECTIONS.map(s => {
-      const assigned = sectionCustomDocs[s.id] || [];
-      const rows = customDocs.map(d => {
-        const a = assigned.find(x => x.leftKey === d.key);
-        return `<div class="sec-assign-row">
-          <input type="checkbox" id="sc_${s.id}_${d.key}" ${a?'checked':''}
-            onchange="toggleSectionDoc('${s.id}','${d.key}',this.checked)">
-          <label for="sc_${s.id}_${d.key}" style="cursor:pointer">${d.label}</label>
-          ${a ? `<select onchange="updateSectionDocOwner('${s.id}','${d.key}',this.value)">
-            <option value="MARKETING PRODOTTO" ${a.owner==='MARKETING PRODOTTO'?'selected':''}>MARKETING PRODOTTO</option>
-            <option value="PRESALES BACK" ${a.owner==='PRESALES BACK'?'selected':''}>PRESALES BACK</option>
-          </select>` : ''}
-        </div>`;
-      }).join('');
-      return `<div class="sec-assign-box">
-        <div class="sec-assign-header">${s.label}</div>
-        <div class="sec-assign-list">${rows}</div>
-      </div>`;
-    }).join('')}`;
-
-  body.innerHTML = listHTML + addForm + secSection;
-}
-
-function addCustomDoc() {
-  const label = document.getElementById('mgmt-new-label').value.trim().toUpperCase();
-  const owner = document.getElementById('mgmt-new-owner').value;
-  if (!label) { alert('Inserisci il nome del documento.'); return; }
-  if (getEffectiveLeftDocs().find(d => d.label === label)) { alert('Documento già esistente.'); return; }
-  const key = 'cx_' + Date.now();
-  customDocs.push({ key, label, owner });
-  saveCustomDocs();
-  renderMgmt();
-  if (selectedId) renderDetail();
-  document.getElementById('mgmt-new-label').value = '';
-}
-
-function deleteCustomDoc(key) {
-  if (!confirm('Eliminare questo tipo di documento?')) return;
-  customDocs = customDocs.filter(d => d.key !== key);
-  Object.keys(sectionCustomDocs).forEach(sid => {
-    sectionCustomDocs[sid] = (sectionCustomDocs[sid] || []).filter(a => a.leftKey !== key);
+function openDocModal() {
+  const p = getProduct(selectedId);
+  if (!p) return;
+  document.getElementById('dm-label').value = '';
+  document.getElementById('dm-owner').value = 'MARKETING PRODOTTO';
+  const visibleSecs = RIGHT_SECTIONS.filter(s => isSectionVisible(p, s));
+  document.getElementById('dm-sections').innerHTML = visibleSecs.map(s => `
+    <label class="sec-check-row">
+      <input type="checkbox" id="dm-sec-${s.id}">
+      <span>${s.label}</span>
+      <select id="dm-sec-owner-${s.id}" style="display:none" onclick="event.stopPropagation()">
+        <option value="MARKETING PRODOTTO">MARKETING PRODOTTO</option>
+        <option value="PRESALES BACK">PRESALES BACK</option>
+      </select>
+    </label>`).join('');
+  visibleSecs.forEach(s => {
+    const cb = document.getElementById('dm-sec-'+s.id);
+    const sel = document.getElementById('dm-sec-owner-'+s.id);
+    if (cb) cb.addEventListener('change', () => { sel.style.display = cb.checked ? 'inline-block' : 'none'; });
   });
-  saveCustomDocs();
-  renderMgmt();
-  if (selectedId) renderDetail();
-  renderList();
+  document.getElementById('doc-modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('dm-label').focus(), 50);
 }
 
-function toggleSectionDoc(sectionId, docKey, checked) {
-  if (!sectionCustomDocs[sectionId]) sectionCustomDocs[sectionId] = [];
-  if (checked) {
-    if (!sectionCustomDocs[sectionId].find(a => a.leftKey === docKey))
-      sectionCustomDocs[sectionId].push({ leftKey: docKey, owner: 'MARKETING PRODOTTO' });
-  } else {
-    sectionCustomDocs[sectionId] = sectionCustomDocs[sectionId].filter(a => a.leftKey !== docKey);
-  }
-  saveCustomDocs();
-  renderMgmt();
-  if (selectedId) renderDetail();
+function closeDocModal() {
+  document.getElementById('doc-modal-overlay').classList.remove('open');
 }
 
-function updateSectionDocOwner(sectionId, docKey, owner) {
-  const entry = (sectionCustomDocs[sectionId] || []).find(a => a.leftKey === docKey);
-  if (entry) { entry.owner = owner; saveCustomDocs(); }
+function saveCustomDoc() {
+  const p = getProduct(selectedId);
+  if (!p) return;
+  const label = document.getElementById('dm-label').value.trim().toUpperCase();
+  const owner = document.getElementById('dm-owner').value;
+  if (!label) { alert('Inserisci il nome del documento.'); return; }
+  if (getProductLeftDocs(p).find(d => d.label === label)) { alert('Documento già presente per questo prodotto.'); return; }
+  const key = 'cx_' + Date.now();
+  const visibleSecs = RIGHT_SECTIONS.filter(s => isSectionVisible(p, s));
+  const sections = visibleSecs
+    .filter(s => document.getElementById('dm-sec-'+s.id)?.checked)
+    .map(s => ({ secId: s.id, owner: document.getElementById('dm-sec-owner-'+s.id)?.value || 'MARKETING PRODOTTO' }));
+  if (!p.customDocs) p.customDocs = [];
+  p.customDocs.push({ key, label, owner, sections });
+  closeDocModal();
+  save();
+  renderDetail();
 }
 
-function saveCustomDocs() {
-  REF.child('customDocs').set({ docs: customDocs, sectionDocs: sectionCustomDocs });
-}
-
-function loadCustomDocs(data) {
-  customDocs        = (data && data.docs)        ? data.docs        : [];
-  sectionCustomDocs = (data && data.sectionDocs) ? data.sectionDocs : {};
+function deleteCustomDoc(pid, key) {
+  const p = getProduct(pid);
+  if (!p) return;
+  if (!confirm('Eliminare questo documento dal prodotto?')) return;
+  p.customDocs = (p.customDocs || []).filter(d => d.key !== key);
+  delete p.docs[key];
+  save();
+  renderDetail();
 }
 
 // ─────────────────────────────────────────────
