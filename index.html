@@ -194,6 +194,52 @@
     font-size:12px; font-weight:600; cursor:pointer; transition:all .15s;
   }
   .add-doc-btn:hover { background:#fef3c7; border-color:#f59e0b; }
+
+  /* ── IMPORT MASSIVO ── */
+  #import-modal-overlay {
+    position:fixed; top:0; left:0; right:0; bottom:0; z-index:9000;
+    background:rgba(0,0,0,.55); align-items:center; justify-content:center;
+  }
+  #import-modal-box {
+    background:#fff; border-radius:12px; width:560px; max-height:86vh;
+    display:flex; flex-direction:column; overflow:hidden;
+    box-shadow:0 20px 60px rgba(0,0,0,.35);
+  }
+  .im-header { padding:14px 18px; background:#003A70; color:#fff; display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .im-header h3 { font-size:13px; font-weight:700; flex:1; margin:0; }
+  .im-header button { background:none; border:none; color:#fff; font-size:20px; cursor:pointer; }
+  .im-body { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:14px; }
+  .im-drop-zone {
+    border:2px dashed #93c5fd; border-radius:10px; padding:28px;
+    text-align:center; cursor:pointer; transition:all .15s; background:#eff6ff;
+  }
+  .im-drop-zone:hover, .im-drop-zone.drag-over { background:#dbeafe; border-color:#3b82f6; }
+  .im-drop-zone .dz-icon { font-size:32px; margin-bottom:8px; }
+  .im-drop-zone .dz-title { font-size:13px; font-weight:600; color:#1d4ed8; margin-bottom:4px; }
+  .im-drop-zone .dz-sub { font-size:11px; color:#64748b; }
+  .im-preview { border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; }
+  .im-preview-header { padding:8px 12px; background:#f8fafc; border-bottom:1px solid #e2e8f0; font-size:11px; font-weight:700; color:#64748b; display:flex; align-items:center; gap:8px; }
+  .im-preview-header span { margin-left:auto; font-size:10px; }
+  .im-row { display:flex; align-items:center; gap:8px; padding:7px 12px; border-bottom:1px solid #f1f5f9; font-size:12px; }
+  .im-row:last-child { border-bottom:none; }
+  .im-row.skip { opacity:.4; text-decoration:line-through; }
+  .im-row .ir-code { font-family:monospace; font-size:11px; color:#64748b; width:80px; flex-shrink:0; }
+  .im-row .ir-name { flex:1; font-weight:500; }
+  .im-row .ir-brands { display:flex; gap:3px; }
+  .im-row .ir-badge { font-size:9px; font-weight:700; padding:2px 5px; border-radius:4px; }
+  .ir-badge-a { background:#fde8ec; color:#c8102e; }
+  .ir-badge-c { background:#dce6f0; color:#003a70; }
+  .ir-badge-w { background:#e5e5e5; color:#1a1a1a; }
+  .im-row .ir-status { font-size:10px; margin-left:auto; }
+  .ir-new { color:#16a34a; font-weight:600; }
+  .ir-dup { color:#f59e0b; font-weight:600; }
+  .im-format-hint { background:#fefce8; border:1px solid #fde68a; border-radius:8px; padding:12px 14px; font-size:11px; color:#78350f; line-height:1.7; }
+  .im-footer { padding:12px 16px; border-top:1px solid #e2e8f0; display:flex; gap:8px; align-items:center; flex-shrink:0; }
+  .im-btn-import { flex:1; padding:10px; border-radius:7px; background:#16a34a; color:#fff; border:none; font-weight:700; font-size:13px; cursor:pointer; }
+  .im-btn-import:hover { background:#15803d; }
+  .im-btn-import:disabled { opacity:.4; cursor:not-allowed; }
+  .im-btn-cancel { padding:10px 14px; border-radius:7px; background:#f8fafc; color:#0f172a; border:1px solid #e2e8f0; font-size:13px; cursor:pointer; }
+  .im-count { font-size:12px; color:#64748b; }
   .custom-doc-badge {
     font-size:9px; padding:1px 5px; border-radius:4px;
     background:#e0e7ff; color:#3730a3; font-weight:700; margin-left:4px; vertical-align:middle;
@@ -270,6 +316,10 @@
   <h1>MDR Documentazione</h1>
   <span id="sync-indicator" style="font-size:11px;color:rgba(255,255,255,.7);margin-left:4px;"></span>
   <div class="spacer"></div>
+  <button class="top-btn" onclick="openImport()" style="background:rgba(22,163,74,.3);border-color:rgba(255,255,255,.3);">
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Importa TXT
+  </button>
   <button class="top-btn" onclick="exportExcel()">
     <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 3v13M5 13l7 7 7-7"/><path d="M3 21h18"/></svg>
     Esporta Excel
@@ -309,6 +359,46 @@
     <div class="dm-footer">
       <button class="dm-btn-cancel" onclick="closeDocModal()">Annulla</button>
       <button class="dm-btn-save" onclick="saveCustomDoc()">Aggiungi documento</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORT MASSIVO -->
+<div id="import-modal-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9000;background:rgba(0,0,0,.55);align-items:center;justify-content:center;" onclick="if(event.target===this)closeImport()">
+  <div id="import-modal-box">
+    <div class="im-header">
+      <h3>📥 Importazione massiva prodotti</h3>
+      <button onclick="closeImport()">✕</button>
+    </div>
+    <div class="im-body">
+      <div class="im-format-hint">
+        <strong>Formato file TXT (tab separato):</strong><br>
+        <code>CODICE&nbsp;&nbsp;&nbsp;DESCRIZIONE&nbsp;&nbsp;&nbsp;BRAND1&nbsp;&nbsp;&nbsp;BRAND2</code><br>
+        I brand validi sono: <strong>ARISTON</strong>, <strong>CHAFFOTEAUX</strong>, <strong>WOLF</strong><br>
+        La prima riga con intestazioni viene ignorata automaticamente.
+      </div>
+      <div class="im-drop-zone" id="im-drop-zone" onclick="document.getElementById('im-file-input').click()"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="event.preventDefault();this.classList.remove('drag-over');handleImportFile(event.dataTransfer.files[0])">
+        <div class="dz-icon">📂</div>
+        <div class="dz-title">Clicca o trascina il file TXT qui</div>
+        <div class="dz-sub">File .txt con separatore tab</div>
+      </div>
+      <input type="file" id="im-file-input" accept=".txt,.tsv" style="display:none" onchange="handleImportFile(this.files[0])">
+      <div id="im-preview" style="display:none">
+        <div class="im-preview">
+          <div class="im-preview-header">
+            Anteprima <span id="im-count-label"></span>
+          </div>
+          <div id="im-rows"></div>
+        </div>
+      </div>
+    </div>
+    <div class="im-footer">
+      <span class="im-count" id="im-footer-count"></span>
+      <button class="im-btn-cancel" onclick="closeImport()">Annulla</button>
+      <button class="im-btn-import" id="im-confirm-btn" disabled onclick="confirmImport()">Importa prodotti</button>
     </div>
   </div>
 </div>
@@ -513,6 +603,7 @@ const FIREBASE_CONFIG = {
 
 let db = null;
 let REF = null;
+
 // ─────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────
@@ -624,8 +715,10 @@ function addProduct() {
   const wolf    = document.getElementById('f-wolf').checked;
   if (!code || !name) { alert('Inserisci codice e nome.'); return; }
   if (!ariston && !chaff && !wolf) { alert('Seleziona almeno un brand.'); return; }
+  const dup = products.find(p => String(p.code) === String(parseInt(code)));
+  if (dup) { alert('⚠️ Il codice ' + code + ' è già presente (' + dup.name + ').\nNon verrà creato un duplicato.'); return; }
   const id = 'p_' + Date.now();
-  products.push({ id, code:parseInt(code), name, brands:{ ariston, chaffoteaux:chaff, wolf }, docs:{} });
+  products.push({ id, code:parseInt(code), name, brands:{ ariston, chaffoteaux:chaff, wolf }, docs:{}, customDocs:[] });
   toggleAddForm();
   ['f-code','f-name'].forEach(i => document.getElementById(i).value = '');
   ['f-ariston','f-chaffoteaux','f-wolf'].forEach(i => document.getElementById(i).checked = false);
@@ -951,6 +1044,113 @@ function deleteCustomDoc(pid, key) {
   delete p.docs[key];
   save();
   renderDetail();
+}
+
+// ─────────────────────────────────────────────
+// IMPORTAZIONE MASSIVA
+// ─────────────────────────────────────────────
+let _importRows = [];
+
+function openImport() {
+  _importRows = [];
+  document.getElementById('im-preview').style.display = 'none';
+  document.getElementById('im-confirm-btn').disabled = true;
+  document.getElementById('im-footer-count').textContent = '';
+  document.getElementById('im-file-input').value = '';
+  var o = document.getElementById('import-modal-overlay');
+  o.style.display = 'flex'; o.style.alignItems = 'center'; o.style.justifyContent = 'center';
+}
+
+function closeImport() {
+  document.getElementById('import-modal-overlay').style.display = 'none';
+}
+
+function handleImportFile(file) {
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) { parseImportTxt(e.target.result); };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseImportTxt(text) {
+  var lines = text.split(/
+?
+/).filter(l => l.trim());
+  _importRows = [];
+  var skippedHeader = false;
+
+  lines.forEach(function(line) {
+    var parts = line.split('	').map(s => s.trim());
+    if (parts.length < 2) return;
+    var code = parts[0];
+    var name = parts[1];
+
+    // Salta la riga di intestazione
+    if (!skippedHeader && (isNaN(parseInt(code)) || name.toUpperCase().includes('DESCRIZIONE') || code.toUpperCase().includes('CODICE'))) {
+      skippedHeader = true; return;
+    }
+    if (!code || !name || isNaN(parseInt(code))) return;
+
+    // Leggi brand dalle colonne successive
+    var remaining = parts.slice(2).map(s => s.toUpperCase());
+    var ariston     = remaining.some(s => s.includes('ARISTON'));
+    var chaffoteaux = remaining.some(s => s.includes('CHAFFOTEAUX') || s.includes('CHAFF'));
+    var wolf        = remaining.some(s => s.includes('WOLF'));
+    if (!ariston && !chaffoteaux && !wolf) ariston = true; // default
+
+    // Controlla duplicati
+    var isDup = products.some(p => String(p.code) === String(parseInt(code)));
+
+    _importRows.push({ code: parseInt(code), name, ariston, chaffoteaux, wolf, isDup });
+  });
+
+  renderImportPreview();
+}
+
+function renderImportPreview() {
+  var newCount = _importRows.filter(r => !r.isDup).length;
+  var dupCount = _importRows.filter(r => r.isDup).length;
+
+  document.getElementById('im-count-label').textContent =
+    newCount + ' nuovi · ' + (dupCount > 0 ? dupCount + ' già presenti (saltati)' : '');
+  document.getElementById('im-footer-count').textContent =
+    _importRows.length + ' righe totali · ' + newCount + ' da importare';
+  document.getElementById('im-confirm-btn').disabled = newCount === 0;
+
+  var rowsHTML = _importRows.map(function(r) {
+    var brands = '';
+    if (r.ariston)     brands += '<span class="ir-badge ir-badge-a">ARI</span>';
+    if (r.chaffoteaux) brands += '<span class="ir-badge ir-badge-c">CHA</span>';
+    if (r.wolf)        brands += '<span class="ir-badge ir-badge-w">WOL</span>';
+    var status = r.isDup
+      ? '<span class="ir-status ir-dup">già presente</span>'
+      : '<span class="ir-status ir-new">nuovo</span>';
+    return '<div class="im-row' + (r.isDup ? ' skip' : '') + '">' +
+      '<span class="ir-code">' + r.code + '</span>' +
+      '<span class="ir-name">' + r.name + '</span>' +
+      '<span class="ir-brands">' + brands + '</span>' +
+      status + '</div>';
+  }).join('');
+
+  document.getElementById('im-rows').innerHTML = rowsHTML;
+  document.getElementById('im-preview').style.display = 'block';
+}
+
+function confirmImport() {
+  var toImport = _importRows.filter(r => !r.isDup);
+  if (!toImport.length) return;
+  toImport.forEach(function(r) {
+    products.push({
+      id: 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2,5),
+      code: r.code, name: r.name,
+      brands: { ariston: r.ariston, chaffoteaux: r.chaffoteaux, wolf: r.wolf },
+      docs: {}, customDocs: []
+    });
+  });
+  save();
+  renderList();
+  closeImport();
+  alert('✓ Importati ' + toImport.length + ' prodotti.');
 }
 
 // ─────────────────────────────────────────────
